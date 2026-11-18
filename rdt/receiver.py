@@ -1,12 +1,12 @@
-"""Receptorul. Modul de lucru il afla din SYN-ul trimis de expeditor."""
+"""The receiver. It learns which mode to run from the sender's SYN."""
 
 import socket
 import time
 
 from . import packet as P
 
-CUMULATIVE = ("sw", "gbn")      # accepta doar in ordine, restul arunca
-BUFFERING = ("tahoe", "reno", "newreno")  # ca TCP: tine ce vine in avans
+CUMULATIVE = ("sw", "gbn")      # in order only, everything else is dropped
+BUFFERING = ("tahoe", "reno", "newreno")  # like TCP: keep what arrives early
 SELECTIVE = ("sr",)
 
 
@@ -20,11 +20,11 @@ class Receiver:
 
         self.mode = None
         self.window = 1
-        self.expected = 0        # urmatorul seq pe care il asteptam in ordine
-        self.buf = {}            # pachete venite in avans (sr / tcp)
+        self.expected = 0        # next seq we expect in order
+        self.buf = {}            # packets that arrived early (sr / tcp)
         self.chunks = []
         self.peer = None
-        self.data = None         # se umple cand primim FIN si avem tot
+        self.data = None         # filled in once FIN arrives and nothing is missing
         self.stopped = False
 
     def _ev(self, ev, seq=None):
@@ -49,7 +49,7 @@ class Receiver:
                 self._send(P.ACK, ack=seq)
                 self._deliver_in_order()
             elif seq < self.expected:
-                # ACK-ul nostru s-a pierdut, expeditorul retrimite. Confirmam iar.
+                # our ACK got lost and the sender is retrying. Confirm it again.
                 self._ev("dup", seq)
                 self._send(P.ACK, ack=seq)
             else:
@@ -67,9 +67,9 @@ class Receiver:
             else:
                 self._ev("dup", seq)
         else:
-            # gbn/sw arunca tot ce nu e in ordine; seq < expected e duplicat
+            # gbn/sw drop anything out of order; seq < expected is a duplicate
             self._ev("discard" if seq > self.expected else "dup", seq)
-        # ACK cumulativ: "am tot pana la expected-1, vreau expected"
+        # cumulative ACK: "I have everything up to expected-1, send expected"
         self._send(P.ACK, ack=self.expected)
 
     def run(self, idle_timeout=30.0):
@@ -79,7 +79,7 @@ class Receiver:
         while not self.stopped:
             now = time.monotonic()
             if done_at is not None and now - done_at > self.linger:
-                break   # un fel de TIME_WAIT: am mai raspuns la FIN-uri intarziate
+                break   # a small TIME_WAIT: we kept answering late FINs for a while
             if now - last_rx > idle_timeout:
                 break
             try:
@@ -102,7 +102,7 @@ class Receiver:
                 self._ev("syn")
                 self._send(P.SYNACK)
             elif ptype == P.ACK:
-                pass   # al treilea pas din handshake, nu avem nimic de facut
+                pass   # third step of the handshake, nothing to do
             elif ptype == P.DATA and self.mode:
                 self._on_data(seq, payload)
             elif ptype == P.FIN:

@@ -1,4 +1,4 @@
-"""Estimarea RTT si calculul timeout-ului, dupa RFC 6298."""
+"""RTT estimation and the retransmission timeout, as in RFC 6298."""
 
 
 class RttEstimator:
@@ -14,17 +14,17 @@ class RttEstimator:
 
     def sample(self, r):
         if self.srtt is None:
-            # prima masuratoare
+            # first sample
             self.srtt = r
             self.rttvar = r / 2
         else:
-            # ordinea conteaza: rttvar se actualizeaza cu srtt-ul vechi
+            # order matters: rttvar is updated with the old srtt
             self.rttvar = (1 - self.BETA) * self.rttvar + self.BETA * abs(self.srtt - r)
             self.srtt = (1 - self.ALPHA) * self.srtt + self.ALPHA * r
         self.rto = self._clamp(self.srtt + 4 * self.rttvar)
 
     def backoff(self):
-        # dupa un timeout dublam RTO-ul (exponential backoff)
+        # after a timeout the RTO doubles (exponential backoff)
         self.rto = self._clamp(self.rto * 2)
 
     def _clamp(self, x):

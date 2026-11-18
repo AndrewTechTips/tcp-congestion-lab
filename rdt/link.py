@@ -1,10 +1,10 @@
-"""Legatura "proasta" dintre expeditor si receptor.
+"""The bad network between sender and receiver.
 
-Pe localhost pachetele ajung instant si nu se pierd niciodata, asa ca nu ai
-ce sa vezi. Clasa asta sta in fata socket-ului UDP si strica intentionat
-traficul: intarziere de propagare, pierderi aleatoare, biti corupti si,
-optional, un router cu debit limitat si coada finita (tail drop).
-Coada plina = congestie, exact cazul pentru care exista controlul congestiei.
+On localhost packets arrive instantly and are never lost, so there is
+nothing to see. Link sits in front of the UDP socket and spoils the traffic
+on purpose: propagation delay, random loss, flipped bytes and, optionally,
+a router with a limited rate and a finite tail-drop queue.
+A full queue is congestion, which is exactly what congestion control is for.
 """
 
 import heapq
@@ -16,13 +16,13 @@ from .packet import HEADER
 
 
 class Router:
-    """Coada unui router. Separata de Link ca s-o poata imparti mai multe
-    fluxuri (testul de echitate din fairness.py)."""
+    """A router's output queue. Kept apart from Link so several flows can
+    share one (the fairness test in fairness.py)."""
 
     def __init__(self, rate, queue):
-        self.rate = rate            # pachete/s pe legatura de iesire
-        self.queue = queue          # cate pachete incap in coada
-        self.busy_until = 0.0       # cand termina routerul de trimis ce are in coada
+        self.rate = rate            # packets/s on the outgoing link
+        self.queue = queue          # how many packets fit in the queue
+        self.busy_until = 0.0       # when the router finishes sending what it has queued
         self.lock = threading.Lock()
 
     def backlog(self, now):
@@ -35,11 +35,11 @@ class Link:
                  router=None):
         self.sock = sock
         self.name = name
-        self.delay = delay          # intarzierea de propagare, intr-un singur sens (s)
+        self.delay = delay          # one-way propagation delay (s)
         self.jitter = jitter
-        self.loss = loss            # probabilitate de pierdere 0..1
-        self.corrupt = corrupt      # probabilitate sa stricam un octet
-        # router cu debit limitat; None = legatura infinit de rapida
+        self.loss = loss            # loss probability 0..1
+        self.corrupt = corrupt      # probability of flipping a byte
+        # rate-limited router; None means an infinitely fast link
         self.router = router or (Router(rate, queue) if rate else None)
         self.rng = random.Random(seed)
         self.clock = clock or time.monotonic
@@ -75,7 +75,7 @@ class Link:
                 q = r.backlog(now)
                 ev["q"] = round(q, 2)
                 if r.queue is not None and q >= r.queue:
-                    ev["drop"] = "queue"   # coada routerului e plina
+                    ev["drop"] = "queue"   # the router's queue is full
                     self.log.append(ev)
                     return
                 r.busy_until = max(now, r.busy_until) + 1.0 / r.rate
@@ -86,7 +86,7 @@ class Link:
             arrive += self.rng.uniform(0, self.jitter)
 
         if self.rng.random() < self.corrupt:
-            # stricam un octet random, checksum-ul trebuie sa prinda asta
+            # flip a random byte; the checksum has to catch it
             b = bytearray(data)
             i = self.rng.randrange(len(b))
             b[i] ^= 0xFF
@@ -115,7 +115,7 @@ class Link:
                 try:
                     self.sock.sendto(data, addr)
                 except OSError:
-                    pass  # socket-ul s-a inchis intre timp, nu ne mai pasa
+                    pass  # the socket closed in the meantime, nobody is listening
 
     def close(self):
         with self._cv:

@@ -1,19 +1,19 @@
--- Disector Wireshark pentru protocolul din proiect (antet de 13 octeti peste UDP).
--- Instalare: copiezi fisierul in folderul de plugin-uri personale
+-- Wireshark dissector for this project's protocol (a 13-byte header over UDP).
+-- Install: copy this file into your personal plugins folder
 --   macOS/Linux: ~/.local/lib/wireshark/plugins/
 --   Windows:     %APPDATA%\Wireshark\plugins\
--- apoi repornesti Wireshark. Filtru util: rdt   sau   rdt.type == 1
+-- and restart Wireshark. Useful filters: rdt   or   rdt.type == 1
 
-local rdt = Proto("rdt", "Transfer fiabil peste UDP (proiect TCP)")
+local rdt = Proto("rdt", "Reliable transfer over UDP (tcp-congestion-lab)")
 
 local types = { [0] = "DATA", [1] = "ACK", [2] = "SYN", [3] = "SYN-ACK", [4] = "FIN", [5] = "FIN-ACK" }
 
-local f_type = ProtoField.uint8("rdt.type", "Tip", base.DEC, types)
-local f_seq  = ProtoField.uint32("rdt.seq", "Numar de secventa", base.DEC)
+local f_type = ProtoField.uint8("rdt.type", "Type", base.DEC, types)
+local f_seq  = ProtoField.uint32("rdt.seq", "Sequence number", base.DEC)
 local f_ack  = ProtoField.uint32("rdt.ack", "Ack", base.DEC)
-local f_len  = ProtoField.uint16("rdt.len", "Lungime date", base.DEC)
+local f_len  = ProtoField.uint16("rdt.len", "Payload length", base.DEC)
 local f_cs   = ProtoField.uint16("rdt.checksum", "Checksum", base.HEX)
-local f_data = ProtoField.bytes("rdt.data", "Date")
+local f_data = ProtoField.bytes("rdt.data", "Data")
 rdt.fields = { f_type, f_seq, f_ack, f_len, f_cs, f_data }
 
 function rdt.dissector(buf, pinfo, tree)

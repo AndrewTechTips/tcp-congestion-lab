@@ -1,4 +1,4 @@
-"""Interfata web. Porneste serverul si deschide http://localhost:8000
+"""The web interface. Starts the server and opens http://localhost:8000
 
   python3 server.py
 """
@@ -20,7 +20,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().__init__(*a, directory=ROOT, **kw)
 
     def log_message(self, fmt, *args):
-        pass  # nu umplem terminalul cu fiecare cerere
+        pass  # keep the terminal quiet
 
     def do_POST(self):
         if self.path != "/api/run":
@@ -30,7 +30,7 @@ class Handler(SimpleHTTPRequestHandler):
             n = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(n) or b"{}")
             params = {k: v for k, v in body.items() if k in ALLOWED}
-            # sa nu blocheze cineva serverul cu un fisier de 1 GB
+            # nobody gets to tie the server up with a 1 GB transfer
             params["size_kb"] = min(float(params.get("size_kb", 300)), 3000)
             result = run_transfer(**params)
             out = json.dumps(result).encode()
@@ -49,7 +49,7 @@ def main():
     port = int(nums[0]) if nums else 8000
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     url = f"http://localhost:{port}"
-    print("interfata e la", url, "(Ctrl+C ca sa opresti)")
+    print("interface running at", url, "(Ctrl+C to stop)")
     if "--no-browser" not in sys.argv:
         webbrowser.open(url)
     try:

@@ -1,9 +1,9 @@
-"""Ruleaza toate protocoalele la mai multe rate de pierdere si scrie un CSV.
+"""Runs every protocol at several loss rates and writes a CSV.
 
-  python3 compare.py                 # varianta rapida
-  python3 compare.py --runs 5        # mai multe repetari, medii mai stabile
+  python3 compare.py                 # quick version
+  python3 compare.py --runs 5        # more repetitions, steadier means
 
-Fiecare punct e media a --runs transferuri cu seed-uri diferite.
+Each point is the mean of --runs transfers with different seeds.
 """
 
 import argparse
@@ -20,7 +20,7 @@ def main():
     a = argparse.ArgumentParser()
     a.add_argument("--runs", type=int, default=3)
     a.add_argument("--size", type=float, default=150)
-    a.add_argument("--out", default="rezultate/comparatie.csv")
+    a.add_argument("--out", default="results/comparison.csv")
     o = a.parse_args()
 
     os.makedirs(os.path.dirname(o.out), exist_ok=True)
@@ -30,12 +30,12 @@ def main():
             acc = {"goodput_kbs": 0, "duration": 0, "retx": 0, "timeouts": 0,
                    "efficiency": 0}
             for k in range(o.runs):
-                # stop-and-wait e lent, ii dam un fisier mai mic
+                # stop-and-wait is slow, give it a smaller file
                 size = o.size / 5 if mode == "sw" else o.size
                 r = run_transfer(mode=mode, size_kb=size, loss=loss,
                                  ack_loss=loss / 2, seed=100 + k)
                 if not r["ok"]:
-                    print("  !! transfer esuat:", mode, loss, r["error"])
+                    print("  !! transfer failed:", mode, loss, r["error"])
                 for key in acc:
                     acc[key] += r["stats"][key]
             row = {"mode": mode, "loss": loss}
@@ -48,7 +48,7 @@ def main():
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
         w.writerows(rows)
-    print("scris in", o.out)
+    print("written to", o.out)
 
 
 if __name__ == "__main__":

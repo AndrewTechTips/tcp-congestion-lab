@@ -1,7 +1,7 @@
-"""Formatul pachetelor si checksum-ul.
+"""Packet format and checksum.
 
-Antet (13 octeti, network byte order):
-  tip (1) | seq (4) | ack (4) | lungime (2) | checksum (2)
+Header (13 bytes, network byte order):
+  type (1) | seq (4) | ack (4) | length (2) | checksum (2)
 """
 
 import struct
@@ -12,11 +12,11 @@ TYPE_NAMES = {DATA: "DATA", ACK: "ACK", SYN: "SYN", SYNACK: "SYN-ACK",
 
 HEADER = struct.Struct("!BIIHH")
 HEADER_SIZE = HEADER.size
-MAX_PAYLOAD = 1000  # ca sa nu fragmenteze IP-ul nimic
+MAX_PAYLOAD = 1000  # small enough that IP never has to fragment
 
 
 def checksum(data: bytes) -> int:
-    # checksum-ul din Internet (RFC 1071): suma in complement fata de 1 pe 16 biti
+    # the Internet checksum (RFC 1071): one's complement sum of 16-bit words
     if len(data) % 2:
         data += b"\x00"
     s = 0
@@ -34,14 +34,14 @@ def build(ptype, seq=0, ack=0, payload=b""):
 
 
 def parse(raw: bytes):
-    """Intoarce (tip, seq, ack, payload) sau None daca pachetul e stricat."""
+    """Returns (type, seq, ack, payload), or None if the packet is damaged."""
     if len(raw) < HEADER_SIZE:
         return None
     ptype, seq, ack, length, cs = HEADER.unpack_from(raw)
     payload = raw[HEADER_SIZE:]
     if length != len(payload):
         return None
-    # recalculam cu campul checksum pus pe 0
+    # recompute with the checksum field zeroed
     zeroed = HEADER.pack(ptype, seq, ack, length, 0) + payload
     if checksum(zeroed) != cs:
         return None

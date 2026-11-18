@@ -7,6 +7,6 @@ __pycache__/
 venv/
 
 # fisiere temporare din transferuri si capturi
-primit.bin
+received.bin
 *.bin
 ~$*

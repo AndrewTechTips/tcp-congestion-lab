@@ -1,5 +1,5 @@
-"""Porneste expeditorul si receptorul in acelasi proces, pe localhost,
-si strange tot ce s-a intamplat intr-un singur dictionar (pt. grafice)."""
+"""Runs sender and receiver in one process on localhost and collects
+everything that happened in a single dict, which the charts are drawn from."""
 
 import hashlib
 import os
@@ -13,18 +13,18 @@ from .sender import Sender, TransferError
 
 DEFAULTS = {
     "mode": "reno",
-    "size_kb": 300,       # cat de mare e fisierul trimis
-    "window": 8,          # pt. gbn / sr
+    "size_kb": 300,       # size of the file to send
+    "window": 8,          # for gbn / sr
     "rwnd": 64,
-    "delay_ms": 40,       # intr-un sens, deci RTT ~ 80 ms
+    "delay_ms": 40,       # one way, so RTT is about 80 ms
     "jitter_ms": 0,
-    "loss": 0.0,          # pierdere aleatoare pe calea de date
-    "ack_loss": 0.0,      # pierdere pe calea ACK-urilor
+    "loss": 0.0,          # random loss on the data path
+    "ack_loss": 0.0,      # loss on the ACK path
     "corrupt": 0.0,
-    "rate": 200,          # pachete/s la router (0 = fara limita)
-    "queue": 12,          # locuri in coada routerului
+    "rate": 200,          # router rate in packets/s (0 = unlimited)
+    "queue": 12,          # slots in the router's queue
     "seed": 1,
-    "data": None,         # optional, bytes de trimis in loc de date random
+    "data": None,         # optional bytes to send instead of random data
 }
 
 
@@ -44,7 +44,7 @@ def run_transfer(**kw):
 
     t0 = time.monotonic()
     clock = lambda: time.monotonic() - t0
-    wire = []                      # tot ce trece pe fir, din ambele sensuri
+    wire = []                      # everything on the wire, both directions
     s_log, r_log = [], []
 
     s_sock, r_sock = _udp(), _udp()

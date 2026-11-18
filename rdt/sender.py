@@ -1,17 +1,17 @@
-"""Expeditorul. Un singur fir de executie si o bucla de evenimente:
-trimite cat ii permite fereastra, apoi asteapta un ACK sau un timeout.
+"""The sender. One thread and one event loop: send as much as the window
+allows, then wait for an ACK or a timeout.
 
-Moduri:
-  sw     stop-and-wait (fereastra = 1)
-  gbn    Go-Back-N, fereastra fixa, la timeout retrimite toata fereastra
-  sr     Selective Repeat, timer pe fiecare pachet, retrimite doar ce s-a pierdut
-  tahoe  TCP Tahoe: slow start + AIMD, la 3 ACK-uri duplicate cwnd = 1
-  reno   TCP Reno: ca Tahoe, dar cu fast recovery (cwnd = ssthresh + 3)
-  newreno  Reno reparat (RFC 6582): un ACK partial nu scoate din fast recovery,
-           asa ca supravietuieste mai multor pierderi in aceeasi fereastra
+Modes:
+  sw       stop-and-wait (window = 1)
+  gbn      Go-Back-N, fixed window, resends the whole window on a timeout
+  sr       Selective Repeat, a timer per packet, resends only what was lost
+  tahoe    TCP Tahoe: slow start + AIMD, cwnd = 1 on three duplicate ACKs
+  reno     TCP Reno: like Tahoe, with fast recovery (cwnd = ssthresh + 3)
+  newreno  Reno fixed by RFC 6582: a partial ACK does not end fast recovery,
+           so it survives several losses in the same window
 
-Numerotam pachete, nu octeti ca in TCP-ul adevarat. E mai usor de urmarit
-pe grafice si nu schimba nimic din idee.
+Packets are numbered, not bytes as in real TCP. It keeps the charts readable
+and changes nothing about the idea.
 """
 
 import math
@@ -34,7 +34,7 @@ class Sender:
                  rwnd=64, clock=None, log=None, init_rto=1.0, min_rto=0.2,
                  max_time=120.0):
         if mode not in MODES:
-            raise ValueError(f"mod necunoscut: {mode}")
+            raise ValueError(f"unknown mode: {mode}")
         self.sock = sock
         self.link = link
         self.peer = peer
@@ -50,28 +50,28 @@ class Sender:
                        for i in range(0, len(data), P.MAX_PAYLOAD)] or [b""]
         self.n = len(self.chunks)
 
-        # starea ferestrei
-        self.base = 0          # cel mai vechi pachet neconfirmat
-        self.nxt = 0           # urmatorul pachet nou de trimis
-        self.sent_at = {}      # seq -> momentul ultimei trimiteri
+        # window state
+        self.base = 0          # oldest unacknowledged packet
+        self.nxt = 0           # next new packet to send
+        self.sent_at = {}      # seq -> time of the last send
         self.ever_sent = set()
-        self.retx = set()      # pachete retrimise (pt. algoritmul lui Karn)
-        self.timer = None      # un singur timer (sw, gbn, tcp)
-        self.timers = {}       # sr: cate un timer pe pachet
+        self.retx = set()      # packets sent more than once (for Karn's rule)
+        self.timer = None      # a single timer (sw, gbn, tcp)
+        self.timers = {}       # sr: one timer per packet
         self.acked = set()     # sr
 
-        # control congestie
+        # congestion control
         self.cwnd = 1.0
         self.ssthresh = 64.0
         self.dupacks = 0
         self.in_recovery = False
-        self.recover = -1      # cel mai mare seq trimis cand am detectat ultima pierdere
+        self.recover = -1      # highest seq sent when the last loss was detected
 
         self.trace = []        # [t, cwnd, ssthresh, srtt, rto]
         self.stats = {"sent": 0, "retx": 0, "timeouts": 0, "fast_retx": 0,
                       "dupacks": 0, "corrupt_acks": 0}
 
-    # ---- utilitare --------------------------------------------------------
+    # ---- helpers --------------------------------------------------------
 
     def now(self):
         return self.clock()
@@ -111,7 +111,7 @@ class Sender:
         self.timer = self.now() + self.rtt.rto if self.base < self.nxt else None
 
     def _sample(self, seq):
-        # Karn: nu masuram RTT pe pachete retrimise, nu stim carui ACK ii apartine
+        # Karn: no RTT samples from retransmitted packets, the ACK could be for either copy
         if seq in self.sent_at and seq not in self.retx:
             self.rtt.sample(self.now() - self.sent_at[seq])
 
@@ -128,10 +128,10 @@ class Sender:
             return False
         return pkt
 
-    # ---- handshake si inchidere ------------------------------------------
+    # ---- handshake and teardown ------------------------------------------
 
     def _exchange(self, ptype, seq, payload, want, tries=12):
-        """Trimite un pachet de control pana primeste raspunsul asteptat."""
+        """Sends a control packet until the expected answer comes back."""
         for attempt in range(tries):
             t0 = self.now()
             self.link.send(P.build(ptype, seq, 0, payload), self.peer)
@@ -144,9 +144,9 @@ class Sender:
                         self.rtt.sample(self.now() - t0)
                     return
             self.rtt.backoff()
-        raise TransferError(f"nu raspunde la {P.TYPE_NAMES[ptype]}")
+        raise TransferError(f"no answer to {P.TYPE_NAMES[ptype]}")
 
-    # ---- transferul --------------------------------------------------------
+    # ---- the transfer --------------------------------------------------------
 
     def run(self):
         t_start = self.now()
@@ -158,7 +158,7 @@ class Sender:
 
         while self.base < self.n:
             if self.now() - t_start > self.max_time:
-                raise TransferError("transferul dureaza prea mult, ma opresc")
+                raise TransferError("transfer is taking too long, giving up")
 
             while self.nxt < self.n and self.nxt < self.base + self._wnd():
                 if self.mode == "sr" and self.nxt in self.acked:
@@ -185,7 +185,7 @@ class Sender:
             return min(self.timers.values()) if self.timers else None
         return self.timer
 
-    # ---- ACK-uri -----------------------------------------------------------
+    # ---- ACKs -----------------------------------------------------------
 
     def _on_ack(self, ack):
         if self.mode == "sr":
@@ -222,36 +222,36 @@ class Sender:
         while self.base in self.acked:
             self.base += 1
 
-    # ---- controlul congestiei (doar tahoe/reno) ----------------------------
+    # ---- congestion control (tahoe/reno/newreno only) ----------------------------
 
     def _cc_new_ack(self, newly, ack):
         if self.in_recovery:
             if self.mode == "newreno" and ack <= self.recover:
-                # ACK partial: mai lipseste ceva din fereastra veche.
-                # Retrimitem imediat, fara sa asteptam alte 3 duplicate.
+                # partial ACK: something from the old window is still missing.
+                # resend it now instead of waiting for three more duplicates.
                 self.cwnd = max(self.cwnd - newly + 1, 1)
                 self._send_data(self.base)
                 self._record()
                 return
-            # am iesit din fast recovery, dezumflam fereastra
+            # leaving fast recovery, deflate the window
             self.cwnd = self.ssthresh
             self.in_recovery = False
         elif self.cwnd < self.ssthresh:
-            self.cwnd += newly                   # slow start: +1 pe fiecare ACK
+            self.cwnd += newly                   # slow start: +1 per ACK
         else:
-            self.cwnd += newly / self.cwnd       # AIMD: ~ +1 pe fiecare RTT
+            self.cwnd += newly / self.cwnd       # AIMD: about +1 per RTT
         self.cwnd = min(self.cwnd, self.rwnd)
         self._record()
 
     def _cc_dupack(self):
         if self.in_recovery:
-            # inca un pachet a parasit reteaua
+            # one more packet has left the network
             self.cwnd = min(self.cwnd + 1, self.rwnd)
             self._record()
             return
         if self.dupacks == 3:
-            # RFC 6582: daca ACK-ul nu trece de recover, duplicatele vin din
-            # retransmisiile noastre, nu dintr-o pierdere noua. Le ignoram.
+            # RFC 6582: if the ACK has not passed recover, these duplicates come from
+            # our own retransmissions, not from a new loss. Ignore them.
             if self.mode != "reno" and self.base <= self.recover:
                 return
             self.stats["fast_retx"] += 1
@@ -261,16 +261,16 @@ class Sender:
             if self.mode == "tahoe":
                 self.cwnd = 1.0
                 self.recover = self.nxt - 1
-                self.nxt = self.base         # o luam de la capat cu slow start
+                self.nxt = self.base         # start over with slow start
             else:
                 self.cwnd = self.ssthresh + 3
                 self.in_recovery = True
                 self.recover = self.nxt - 1
-                self._send_data(self.base)   # retrimitem doar pachetul lipsa
+                self._send_data(self.base)   # resend only the missing packet
             self.timer = self.now() + self.rtt.rto
             self._record()
 
-    # ---- timeout-uri -------------------------------------------------------
+    # ---- timeouts -------------------------------------------------------
 
     def _check_timeouts(self):
         now = self.now()
@@ -297,6 +297,6 @@ class Sender:
             self.dupacks = 0
             self.recover = self.nxt - 1
             self._record()
-        # sw, gbn si tcp: ne intoarcem la base si retrimitem de acolo
+        # sw, gbn and tcp: go back to base and resend from there
         self.nxt = self.base
         self.timer = None

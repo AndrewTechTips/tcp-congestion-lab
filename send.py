@@ -1,6 +1,6 @@
-"""Expeditorul ca proces separat. Se porneste dupa recv.py.
+"""The sender as a separate process. Start recv.py first.
 
-  python3 send.py poza.jpg --mode reno --loss 0.03
+  python3 send.py photo.jpg --mode reno --loss 0.03
 """
 
 import argparse
@@ -36,8 +36,8 @@ def main():
     dt = time.monotonic() - t
     link.close()
     s = tx.stats
-    print(f"trimis {len(data)} octeti in {dt:.2f} s ({len(data) / 1024 / dt:.1f} KB/s)")
-    print(f"retransmisii: {s['retx']}, timeout-uri: {s['timeouts']}, fast retransmit: {s['fast_retx']}")
+    print(f"sent {len(data)} bytes in {dt:.2f} s ({len(data) / 1024 / dt:.1f} KB/s)")
+    print(f"retransmissions: {s['retx']}, timeouts: {s['timeouts']}, fast retransmits: {s['fast_retx']}")
     print("sha256:", hashlib.sha256(data).hexdigest())
 
 
