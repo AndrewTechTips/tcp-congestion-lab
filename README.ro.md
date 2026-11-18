@@ -10,12 +10,12 @@ Selective Repeat și trei variante de TCP (Tahoe, Reno, NewReno). Între
 expeditor și receptor stă o legătură simulată care pierde, întârzie și strică
 pachete, plus un router cu coadă finită. Așa apare congestia și pe localhost.
 
-Partea teoretică și rezultatele sunt în `referat/`.
+Partea teoretică și rezultatele sunt în `docs/report/`.
 
 ## Ce trebuie instalat
 
-Doar Python 3.8 sau mai nou. Programul în sine folosește numai biblioteca
-standard. `matplotlib` trebuie doar pentru `figuri.py`.
+Doar Python 3.10 sau mai nou. Programul în sine folosește numai biblioteca
+standard. `matplotlib` trebuie doar pentru `figures.py`.
 
 ## Cum se rulează
 
@@ -28,16 +28,17 @@ python3 server.py
 Se deschide singură la http://localhost:8000. Alegi protocolul, setezi
 pierderile și debitul routerului și apeși „Pornește transferul”. Ai patru
 grafice: fereastra de congestie, secvență–timp, diagrama pachetelor și o
-comparație între toate protocoalele.
+comparație între toate protocoalele. Interfața pornește în engleză; butonul
+RO din colțul de sus o trece în română.
 
 Din terminal:
 
 ```
 python3 run.py --mode reno --size 500 --loss 0.02
 python3 run.py --mode gbn --window 10 --loss 0.05
-python3 compare.py --runs 5        # tabelul cu toate protocoalele -> rezultate/
+python3 compare.py --runs 5        # tabelul cu toate protocoalele -> results/
 python3 fairness.py                # doua fluxuri prin acelasi router, indicele Jain
-python3 figuri.py                  # graficele din referat -> referat/figuri/
+python3 figures.py --lang ro       # graficele din referat -> docs/report/figures/
 python3 -m unittest -v             # testele automate (16 teste)
 ```
 
@@ -47,7 +48,7 @@ python3 -m unittest -v             # testele automate (16 teste)
 2. Copiezi `wireshark/rdt.lua` in folderul de plugin-uri personale
    (`~/.local/lib/wireshark/plugins/` pe macOS/Linux) si repornesti Wireshark.
    Asa Wireshark afiseaza campurile antetului nostru (tip, seq, ack, lungime, checksum).
-3. Rulezi `bash wireshark/captura.sh` (cere parola, tcpdump are nevoie de drepturi).
+3. Rulezi `bash wireshark/capture.sh` (cere parola, tcpdump are nevoie de drepturi).
    Captura se salveaza in `wireshark/transfer_reno.pcap`.
 4. O deschizi in Wireshark. Filtre utile: `rdt`, `rdt.type == 1` (doar ACK-uri).
 

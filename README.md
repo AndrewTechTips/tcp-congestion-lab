@@ -16,14 +16,14 @@ implemented over UDP and drawn packet by packet.</strong></p>
   &nbsp;·&nbsp;
   <a href="#results">Results</a>
   &nbsp;·&nbsp;
-  <a href="referat/Referat_TCP_Condrea_Andrei.pdf">Report (RO, PDF)</a>
+  <a href="docs/report/Referat_TCP_Condrea_Andrei.pdf">Written report (RO)</a>
   &nbsp;·&nbsp;
   <a href="README.ro.md">Citește în română</a>
 </p>
 
 <p>
   <a href="https://github.com/AndrewTechTips/tcp-congestion-lab/actions/workflows/tests.yml"><img src="https://github.com/AndrewTechTips/tcp-congestion-lab/actions/workflows/tests.yml/badge.svg" alt="Tests" /></a>
-  <img src="https://img.shields.io/badge/python-3.8%2B-3776AB?logo=python&logoColor=white" alt="Python 3.8+" />
+  <img src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python 3.10+" />
   <img src="https://img.shields.io/badge/dependencies-none-2ea44f" alt="No dependencies" />
   <img src="https://img.shields.io/badge/tests-16%20passing-2ea44f" alt="16 tests" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT licence" /></a>
@@ -40,9 +40,6 @@ This project puts a deliberately bad network between a sender and a receiver: pr
 random loss, flipped bits, and a router that forwards 200 packets a second and drops whatever does
 not fit in its queue. Then it runs six reliable-transfer protocols across it and records every
 packet, ACK, timeout and window change.
-
-It was my project for the Computer Networks course (3rd year, Computer Science). The written
-report, in Romanian, is in [`referat/`](referat/).
 
 ## Highlights
 
@@ -74,10 +71,11 @@ report, in Romanian, is in [`referat/`](referat/).
 
 The interface has four views: the congestion window with ssthresh and loss events, the
 sequence–time plot, the packet diagram, and a comparison that runs every protocol at 0–10% loss.
+It speaks English and Romanian; the switch is in the top corner.
 
 ## Quick start
 
-You need Python 3.8 or newer. Nothing to install.
+You need Python 3.10 or newer. Nothing to install.
 
 ```bash
 git clone https://github.com/AndrewTechTips/tcp-congestion-lab.git
@@ -85,14 +83,13 @@ cd tcp-congestion-lab
 python3 server.py            # opens http://localhost:8000
 ```
 
-Pick a protocol, press **congestie** (congestion) or **pierderi** (losses), then
-**Pornește transferul** (start the transfer).
+Pick a protocol, press **congestion** or **lossy**, then **Start the transfer**.
 
 From the terminal:
 
 ```bash
 python3 run.py --mode reno --size 500 --loss 0.02   # one transfer, with statistics
-python3 compare.py --runs 5                         # every protocol at 0–10% loss -> rezultate/
+python3 compare.py --runs 5                         # every protocol at 0–10% loss -> results/
 python3 fairness.py                                 # two flows through one router
 python3 -m unittest -v                              # the test suite
 ```
@@ -100,10 +97,10 @@ python3 -m unittest -v                              # the test suite
 ## Results
 
 All numbers come from this repository and can be reproduced with the commands above
-(`python3 figuri.py` redraws every chart).
+(`python3 figures.py` redraws every chart).
 
 <p align="center">
-  <img src="referat/figuri/fig_reno_cwnd.png" width="760" alt="TCP Reno congestion window over 9 seconds: slow start to 55, a timeout at 1.25 s, then a regular sawtooth between 15 and 31 packets" />
+  <img src="docs/assets/figures/fig_reno_cwnd.png" width="760" alt="TCP Reno congestion window over 9 seconds: slow start to 55, a timeout at 1.25 s, then a regular sawtooth between 15 and 31 packets" />
 </p>
 
 **TCP Reno finds the link on its own.** Slow start doubles the window every RTT and overshoots to
@@ -113,7 +110,7 @@ sawtooth between 15 and 31 packets. Even after each halving, the window still co
 bandwidth-delay product, so the link stays busy.
 
 <p align="center">
-  <img src="referat/figuri/fig_comparatie.png" width="760" alt="Goodput against loss rate for six protocols: Go-Back-N falls from 84 to 9 KB/s, the TCP variants stay highest at 10% loss" />
+  <img src="docs/assets/figures/fig_comparatie.png" width="760" alt="Goodput against loss rate for six protocols: Go-Back-N falls from 84 to 9 KB/s, the TCP variants stay highest at 10% loss" />
 </p>
 
 | Goodput (KB/s), mean of 5 runs | 0% | 1% | 2% | 5% | 10% |
@@ -132,12 +129,12 @@ repairs one loss per RTT, and there were more than 20 of them. That is the gap S
 real loss the picture flips: Go-Back-N collapses and the TCP variants hold up best.
 
 <p align="center">
-  <img src="referat/figuri/fig_echitate.png" width="760" alt="Two Reno flows through one router: the second joins at 4 s and within a few seconds both run near 100 packets/s, Jain index 0.995" />
+  <img src="docs/assets/figures/fairness.png" width="760" alt="Two Reno flows through one router: the second joins at 4 s and within a few seconds both run near 100 packets/s, Jain index 0.996" />
 </p>
 
 **AIMD is fair in practice.** Two Reno flows share one router. The second joins after four
-seconds, and within a few cycles they split the link at about 107 and 92 packets a second.
-Jain's fairness index comes out at 0.995, where 1 means a perfectly even split.
+seconds, and within a few cycles they split the link at about 106 and 93 packets a second.
+Jain's fairness index comes out at 0.996, where 1 means a perfectly even split.
 
 ## How it works
 
@@ -181,8 +178,15 @@ a clean link and with 5% data loss, 3% ACK loss and 2% corrupted packets.
 
 `wireshark/rdt.lua` is a dissector for the protocol: copy it into Wireshark's personal plugins
 folder and captures show `DATA seq=12 len=1000` or `ACK 13` instead of raw UDP bytes.
-`wireshark/captura.sh` runs a lossy Reno transfer between two processes and records it with
+`wireshark/capture.sh` runs a lossy Reno transfer between two processes and records it with
 `tcpdump` on the loopback interface (it asks for your password, since capturing needs root).
+
+## Background
+
+I built this for the Computer Networks course in my third year of Computer Science, to see the
+mechanisms from the lectures actually run instead of reading about them. The write-up, in
+Romanian, is in [`docs/report/`](docs/report/): theory, design, the full results and a protocol
+specification.
 
 ## Licence
 
