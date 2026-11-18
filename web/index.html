@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transfer fiabil peste UDP</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div>
+    <h1>Transfer fiabil peste UDP</h1>
+    <p class="sub">Stop-and-Wait, Go-Back-N, Selective Repeat și controlul congestiei din TCP</p>
+  </div>
+  <p class="author">Condrea Andrei · grupa 2</p>
+</header>
+
+<main>
+  <aside>
+    <form id="form">
+      <label>Protocol
+        <select name="mode">
+          <option value="sw">Stop-and-Wait</option>
+          <option value="gbn">Go-Back-N</option>
+          <option value="sr">Selective Repeat</option>
+          <option value="tahoe">TCP Tahoe</option>
+          <option value="reno" selected>TCP Reno</option>
+          <option value="newreno">TCP NewReno</option>
+        </select>
+      </label>
+
+      <div class="presets">
+        <span>Scenarii:</span>
+        <button type="button" data-preset="clean">rețea bună</button>
+        <button type="button" data-preset="congestion">congestie</button>
+        <button type="button" data-preset="lossy">pierderi</button>
+      </div>
+
+      <fieldset>
+        <legend>Fișierul</legend>
+        <label>Dimensiune <span class="unit">KB</span>
+          <input type="number" name="size_kb" value="400" min="1" max="3000"></label>
+        <label class="win">Fereastră (GBN/SR) <span class="unit">pachete</span>
+          <input type="number" name="window" value="8" min="1" max="64"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Legătura</legend>
+        <label>Întârziere, un sens <span class="unit">ms</span>
+          <input type="number" name="delay_ms" value="40" min="0" max="500"></label>
+        <label>Jitter <span class="unit">ms</span>
+          <input type="number" name="jitter_ms" value="0" min="0" max="200"></label>
+        <label>Debit router <span class="unit">pachete/s, 0 = nelimitat</span>
+          <input type="number" name="rate" value="200" min="0" max="5000"></label>
+        <label>Coada routerului <span class="unit">pachete</span>
+          <input type="number" name="queue" value="12" min="1" max="500"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Erori</legend>
+        <label>Pierdere date <output data-for="loss">0%</output>
+          <input type="range" name="loss" min="0" max="0.2" step="0.005" value="0"></label>
+        <label>Pierdere ACK <output data-for="ack_loss">0%</output>
+          <input type="range" name="ack_loss" min="0" max="0.2" step="0.005" value="0"></label>
+        <label>Pachete corupte <output data-for="corrupt">0%</output>
+          <input type="range" name="corrupt" min="0" max="0.1" step="0.005" value="0"></label>
+        <label>Seed <span class="unit">același seed = același rezultat</span>
+          <input type="number" name="seed" value="1"></label>
+      </fieldset>
+
+      <button type="submit" id="go">Pornește transferul</button>
+      <p id="status" class="status"></p>
+    </form>
+  </aside>
+
+  <section class="content">
+    <div id="stats" class="stats"></div>
+
+    <nav class="tabs">
+      <button data-tab="cwnd" class="active">Fereastra de congestie</button>
+      <button data-tab="seq">Secvență–timp</button>
+      <button data-tab="ladder">Diagrama pachetelor</button>
+      <button data-tab="compare">Comparație</button>
+    </nav>
+
+    <div class="panel active" id="tab-cwnd">
+      <p class="hint">cwnd = câte pachete poate avea expeditorul „pe drum” fără confirmare. Se vede slow start (creștere exponențială), apoi AIMD (+1 pe RTT, înjumătățire la pierdere).</p>
+      <canvas id="cwnd" height="360"></canvas>
+      <canvas id="rtt" height="180"></canvas>
+    </div>
+
+    <div class="panel" id="tab-seq">
+      <p class="hint">Fiecare punct e un pachet trimis. Panta = viteza de transfer. Unde apar puncte roșii s-a retrimis ceva, iar linia verde (ACK-ul cumulativ) stă pe loc până vine pachetul lipsă.</p>
+      <canvas id="seqplot" height="460"></canvas>
+    </div>
+
+    <div class="panel" id="tab-ladder">
+      <p class="hint">Diagrama clasică din curs: timpul curge în jos. Săgețile oblice sunt pachete pe drum, ✕ înseamnă pachet pierdut.</p>
+      <div class="ladder-controls">
+        <label>De la <output id="lstart-out">0.00 s</output>
+          <input type="range" id="lstart" min="0" max="1" step="0.001" value="0"></label>
+        <label>Interval
+          <select id="lspan">
+            <option value="0.1">0,1 s</option>
+            <option value="0.25" selected>0,25 s</option>
+            <option value="0.5">0,5 s</option>
+            <option value="1">1 s</option>
+            <option value="2">2 s</option>
+          </select></label>
+        <button type="button" id="ljump">Sari la prima pierdere</button>
+      </div>
+      <div id="ladder"></div>
+    </div>
+
+    <div class="panel" id="tab-compare">
+      <p class="hint">Rulează toate protocoalele la mai multe rate de pierdere, cu ceilalți parametri din stânga. Durează cam un minut.</p>
+      <div class="ladder-controls">
+        <button type="button" id="cmp-go">Rulează comparația</button>
+        <span id="cmp-status" class="status"></span>
+      </div>
+      <canvas id="cmp" height="380"></canvas>
+      <div id="cmp-table"></div>
+    </div>
+  </section>
+</main>
+
+<script src="charts.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
