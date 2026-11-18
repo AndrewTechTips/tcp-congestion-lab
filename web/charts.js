@@ -1,4 +1,4 @@
-// Grafice simple pe canvas. N-am vrut biblioteci externe ca sa mearga si offline.
+// Small canvas charts. No libraries, so it also works offline.
 
 function css(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -13,10 +13,10 @@ function niceStep(range, count) {
 
 function fmt(v) {
   if (Math.abs(v) >= 100 || Number.isInteger(v)) return String(Math.round(v));
-  return String(+v.toFixed(2)).replace(".", ",");
+  return num(+v.toFixed(2));
 }
 
-// valoarea unei serii in trepte la momentul x
+// value of a step series at time x
 function stepAt(points, x) {
   let v = null;
   for (const p of points) {
@@ -67,7 +67,7 @@ function draw(canvas) {
     g.fillText(opt.title, m.l, 18);
   }
 
-  // grila si axele
+  // grid and axes
   g.strokeStyle = css("--grid");
   g.fillStyle = css("--muted");
   g.lineWidth = 1;
@@ -95,7 +95,7 @@ function draw(canvas) {
   g.save();
   g.beginPath(); g.rect(m.l, m.t - 2, pw, ph + 4); g.clip();
 
-  // marcaje verticale (timeout, fast retransmit)
+  // vertical markers (timeout, fast retransmit)
   for (const mk of opt.markers || []) {
     g.strokeStyle = mk.color;
     g.globalAlpha = 0.35;
@@ -141,7 +141,7 @@ function draw(canvas) {
   }
   g.restore();
 
-  // legenda
+  // legend
   let lx = m.l + 8;
   const ly = m.t + 10;
   g.textAlign = "left";
@@ -154,7 +154,7 @@ function draw(canvas) {
     lx += g.measureText(s.label).width + 34;
   }
 
-  // valori la cursor
+  // values under the cursor
   const hx = canvas._hover;
   if (hx != null && hx >= m.l && hx <= m.l + pw && opt.hover !== false) {
     const x = xMin + (hx - m.l) / pw * (xMax - xMin);

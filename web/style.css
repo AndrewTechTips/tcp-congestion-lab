@@ -51,7 +51,9 @@ header {
 }
 h1 { margin: 0; font-size: 21px; font-weight: 650; letter-spacing: -0.01em; }
 .sub { margin: 2px 0 0; color: var(--muted); }
-.author { margin: 0; color: var(--muted); white-space: nowrap; }
+.lang { display: flex; gap: 4px; }
+.lang button { font-size: 12px; padding: 4px 9px; font-weight: 600; color: var(--muted); }
+.lang button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 main {
   display: grid;

@@ -1,24 +1,27 @@
 <!doctype html>
-<html lang="ro">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Transfer fiabil peste UDP</title>
+<title>Reliable transfer over UDP</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
   <div>
-    <h1>Transfer fiabil peste UDP</h1>
-    <p class="sub">Stop-and-Wait, Go-Back-N, Selective Repeat și controlul congestiei din TCP</p>
+    <h1 data-i18n="title">Reliable transfer over UDP</h1>
+    <p class="sub" data-i18n="sub">Stop-and-Wait, Go-Back-N, Selective Repeat and TCP congestion control</p>
   </div>
-  <p class="author">Condrea Andrei · grupa 2</p>
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="en" aria-pressed="true">EN</button>
+    <button type="button" data-lang="ro" aria-pressed="false">RO</button>
+  </div>
 </header>
 
 <main>
   <aside>
     <form id="form">
-      <label>Protocol
+      <label><span data-i18n="protocol">Protocol</span>
         <select name="mode">
           <option value="sw">Stop-and-Wait</option>
           <option value="gbn">Go-Back-N</option>
@@ -30,45 +33,45 @@
       </label>
 
       <div class="presets">
-        <span>Scenarii:</span>
-        <button type="button" data-preset="clean">rețea bună</button>
-        <button type="button" data-preset="congestion">congestie</button>
-        <button type="button" data-preset="lossy">pierderi</button>
+        <span data-i18n="scenarios">Scenarios:</span>
+        <button type="button" data-preset="clean" data-i18n="p_clean">clean link</button>
+        <button type="button" data-preset="congestion" data-i18n="p_congestion">congestion</button>
+        <button type="button" data-preset="lossy" data-i18n="p_lossy">lossy</button>
       </div>
 
       <fieldset>
-        <legend>Fișierul</legend>
-        <label>Dimensiune <span class="unit">KB</span>
+        <legend data-i18n="g_file">The file</legend>
+        <label><span data-i18n="size">Size</span> <span class="unit">KB</span>
           <input type="number" name="size_kb" value="400" min="1" max="3000"></label>
-        <label class="win">Fereastră (GBN/SR) <span class="unit">pachete</span>
+        <label class="win"><span data-i18n="window">Window (GBN/SR)</span> <span class="unit" data-i18n="u_packets">packets</span>
           <input type="number" name="window" value="8" min="1" max="64"></label>
       </fieldset>
 
       <fieldset>
-        <legend>Legătura</legend>
-        <label>Întârziere, un sens <span class="unit">ms</span>
+        <legend data-i18n="g_link">The link</legend>
+        <label><span data-i18n="delay">One-way delay</span> <span class="unit">ms</span>
           <input type="number" name="delay_ms" value="40" min="0" max="500"></label>
-        <label>Jitter <span class="unit">ms</span>
+        <label><span data-i18n="jitter">Jitter</span> <span class="unit">ms</span>
           <input type="number" name="jitter_ms" value="0" min="0" max="200"></label>
-        <label>Debit router <span class="unit">pachete/s, 0 = nelimitat</span>
+        <label><span data-i18n="rate">Router rate</span> <span class="unit" data-i18n="u_rate">packets/s, 0 = unlimited</span>
           <input type="number" name="rate" value="200" min="0" max="5000"></label>
-        <label>Coada routerului <span class="unit">pachete</span>
+        <label><span data-i18n="queue">Router queue</span> <span class="unit" data-i18n="u_packets">packets</span>
           <input type="number" name="queue" value="12" min="1" max="500"></label>
       </fieldset>
 
       <fieldset>
-        <legend>Erori</legend>
-        <label>Pierdere date <output data-for="loss">0%</output>
+        <legend data-i18n="g_errors">Errors</legend>
+        <label><span data-i18n="loss">Data loss</span> <output data-for="loss">0%</output>
           <input type="range" name="loss" min="0" max="0.2" step="0.005" value="0"></label>
-        <label>Pierdere ACK <output data-for="ack_loss">0%</output>
+        <label><span data-i18n="ack_loss">ACK loss</span> <output data-for="ack_loss">0%</output>
           <input type="range" name="ack_loss" min="0" max="0.2" step="0.005" value="0"></label>
-        <label>Pachete corupte <output data-for="corrupt">0%</output>
+        <label><span data-i18n="corrupt">Corrupted packets</span> <output data-for="corrupt">0%</output>
           <input type="range" name="corrupt" min="0" max="0.1" step="0.005" value="0"></label>
-        <label>Seed <span class="unit">același seed = același rezultat</span>
+        <label><span data-i18n="seed">Seed</span> <span class="unit" data-i18n="u_seed">same seed, same result</span>
           <input type="number" name="seed" value="1"></label>
       </fieldset>
 
-      <button type="submit" id="go">Pornește transferul</button>
+      <button type="submit" id="go" data-i18n="go">Start the transfer</button>
       <p id="status" class="status"></p>
     </form>
   </aside>
@@ -77,45 +80,45 @@
     <div id="stats" class="stats"></div>
 
     <nav class="tabs">
-      <button data-tab="cwnd" class="active">Fereastra de congestie</button>
-      <button data-tab="seq">Secvență–timp</button>
-      <button data-tab="ladder">Diagrama pachetelor</button>
-      <button data-tab="compare">Comparație</button>
+      <button data-tab="cwnd" class="active" data-i18n="tab_cwnd">Congestion window</button>
+      <button data-tab="seq" data-i18n="tab_seq">Sequence–time</button>
+      <button data-tab="ladder" data-i18n="tab_ladder">Packet diagram</button>
+      <button data-tab="compare" data-i18n="tab_cmp">Comparison</button>
     </nav>
 
     <div class="panel active" id="tab-cwnd">
-      <p class="hint">cwnd = câte pachete poate avea expeditorul „pe drum” fără confirmare. Se vede slow start (creștere exponențială), apoi AIMD (+1 pe RTT, înjumătățire la pierdere).</p>
+      <p class="hint" data-i18n="hint_cwnd"></p>
       <canvas id="cwnd" height="360"></canvas>
       <canvas id="rtt" height="180"></canvas>
     </div>
 
     <div class="panel" id="tab-seq">
-      <p class="hint">Fiecare punct e un pachet trimis. Panta = viteza de transfer. Unde apar puncte roșii s-a retrimis ceva, iar linia verde (ACK-ul cumulativ) stă pe loc până vine pachetul lipsă.</p>
+      <p class="hint" data-i18n="hint_seq"></p>
       <canvas id="seqplot" height="460"></canvas>
     </div>
 
     <div class="panel" id="tab-ladder">
-      <p class="hint">Diagrama clasică din curs: timpul curge în jos. Săgețile oblice sunt pachete pe drum, ✕ înseamnă pachet pierdut.</p>
+      <p class="hint" data-i18n="hint_ladder"></p>
       <div class="ladder-controls">
-        <label>De la <output id="lstart-out">0.00 s</output>
+        <label><span data-i18n="from">From</span> <output id="lstart-out">0.00 s</output>
           <input type="range" id="lstart" min="0" max="1" step="0.001" value="0"></label>
-        <label>Interval
+        <label><span data-i18n="span">Span</span>
           <select id="lspan">
-            <option value="0.1">0,1 s</option>
-            <option value="0.25" selected>0,25 s</option>
-            <option value="0.5">0,5 s</option>
+            <option value="0.1">0.1 s</option>
+            <option value="0.25" selected>0.25 s</option>
+            <option value="0.5">0.5 s</option>
             <option value="1">1 s</option>
             <option value="2">2 s</option>
           </select></label>
-        <button type="button" id="ljump">Sari la prima pierdere</button>
+        <button type="button" id="ljump" data-i18n="jump">Jump to the first loss</button>
       </div>
       <div id="ladder"></div>
     </div>
 
     <div class="panel" id="tab-compare">
-      <p class="hint">Rulează toate protocoalele la mai multe rate de pierdere, cu ceilalți parametri din stânga. Durează cam un minut.</p>
+      <p class="hint" data-i18n="hint_cmp"></p>
       <div class="ladder-controls">
-        <button type="button" id="cmp-go">Rulează comparația</button>
+        <button type="button" id="cmp-go" data-i18n="cmp_go">Run the comparison</button>
         <span id="cmp-status" class="status"></span>
       </div>
       <canvas id="cmp" height="380"></canvas>
@@ -124,6 +127,7 @@
   </section>
 </main>
 
+<script src="i18n.js"></script>
 <script src="charts.js"></script>
 <script src="app.js"></script>
 </body>
