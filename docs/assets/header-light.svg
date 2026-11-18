@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" font-family="'IBM Plex Sans','Segoe UI',Helvetica,Arial,sans-serif">
+  <rect width="1200" height="300" rx="14" fill="#ffffff"/>
+  <g stroke="#eaeef2" stroke-width="1">
+    <path d="M60 60H1140M60 110H1140M60 160H1140M60 210H1140M60 260H1140"/>
+  </g>
+  <!-- cwnd: slow start, o pierdere mare, apoi dintele de fierastrau AIMD -->
+  <path d="M60 255 L95 254 L120 250 L140 240 L158 218 L172 180 L184 128 L192 92 L196 92 L196 186 L250 186 L250 252 L262 250 L274 244 L284 232
+           L300 214 L360 186 L420 160 L470 142 L470 200 L560 168 L640 142 L640 200 L730 168 L810 142 L810 200 L900 168 L980 142 L980 200 L1070 168 L1140 148"
+        fill="none" stroke="#2557c4" stroke-width="3.2" stroke-linejoin="round"/>
+  <path d="M196 186 H470 M470 200 H640 M640 200 H810 M810 200 H980 M980 200 H1140" stroke="#c47a12" stroke-width="2" stroke-dasharray="7 6" fill="none" opacity=".8"/>
+  <g fill="#d23f31">
+    <circle cx="196" cy="92" r="6"/><circle cx="250" cy="186" r="6"/><circle cx="470" cy="142" r="6"/>
+    <circle cx="640" cy="142" r="6"/><circle cx="810" cy="142" r="6"/><circle cx="980" cy="142" r="6"/>
+  </g>
+  <text x="1120" y="88" text-anchor="end" font-size="46" font-weight="700" fill="#1f2328">TCP Congestion Lab</text>
+  <text x="1120" y="124" text-anchor="end" font-size="19" fill="#59636e">reliable transfer and congestion control over UDP, made visible</text>
+  <text x="80" y="290" font-size="14" fill="#8c959f" font-family="'IBM Plex Mono',Menlo,monospace">cwnd · ssthresh · loss</text>
+</svg>
